@@ -1,0 +1,15 @@
+{
+  "mysql": {
+    "host": "localhost",
+    "user": "root",
+    "password": "password",
+    "port": "3307"
+  },
+  "postgres": {
+    "database": "master",
+    "user": "postgres",
+    "password": "password",
+    "host": "127.0.0.1",
+    "port": "5432"
+  }
+}

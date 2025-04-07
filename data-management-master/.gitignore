@@ -1,0 +1,8 @@
+*.xlsx
+*.sql
+*.csv
+*.json
+*.docx
+*.docx#
+~lock*
+*.dump
