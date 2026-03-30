@@ -1,0 +1,91 @@
+version: '3.7'
+services:
+
+  opencr-postgres:
+    container_name: opencr-postgres
+    image: postgres:14.1-alpine
+    restart: unless-stopped
+    environment:
+        - POSTGRES_USER=admin
+        - POSTGRES_PASSWORD=admin
+        - POSTGRES_DB=hapi
+    volumes:
+          - opencr-hapi_db_vol:/var/lib/postgresql/data
+    networks:
+      - cloudbuild
+  
+  opencr-hapi-fhir:    
+    container_name: opencr-hapi-fhir
+    image: hapiproject/hapi:v5.1.0
+    restart: unless-stopped
+    networks:
+      - cloudbuild    
+    ports:
+      - 8080:8080
+    environment:
+      - spring.datasource.url=jdbc:postgresql://opencr-postgres:5432/hapi
+      - spring.datasource.username=admin
+      - spring.datasource.password=admin
+      - spring.datasource.driverClassName=org.postgresql.Driver
+      - spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQL95Dialect
+      - hapi.fhir.allow_external_references=true
+      - hapi.fhir.auto_create_placeholder_reference_targets=true
+      - hapi.fhir.bulk_export_enabled=true
+      - hapi.fhir.client_id_strategy=ANY
+      - hapi.fhir.enable_repository_validating_interceptor=true
+      - JAVA_TOOL_OPTIONS=-Xmx2g
+      - CATALINA_OPTS=-Xmx2g
+
+
+
+  opencr-es:
+    container_name: opencr-es
+    image: intrahealth/elasticsearch:latest
+    restart: unless-stopped
+    environment:
+      - node.name=es01
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1      
+    volumes:
+       - opencr-es_data_vol:/usr/share/opensearch/data
+    networks:
+      - cloudbuild
+
+  opencr:
+    container_name: opencr
+    hostname: opencr
+    image: intrahealth/opencr:latest
+    restart: on-failure
+    environment:
+      - NODE_ENV=docker
+      - HAPI_FHIR_URL=http://opencr-hapi-fhir:8080/fhir/metadata
+    volumes:
+      - ./opencr-config/config.json:/src/server/config/config_docker.json
+      - ./opencr-config/mediator.json:/src/server/config/mediator.json
+      - ./opencr-config/decisionRules.json:/src/server/config/decisionRules.json
+      - ./opencr-config/PatientRelationship.json:/src/resources/Relationships/PatientRelationship.json
+    networks:
+      - cloudbuild
+    ports:
+      - 3000:3000
+    depends_on:
+      - opencr-hapi-fhir
+      - opencr-es
+
+volumes:
+    opencr-hapi_db_vol:
+        name: opencr-hapi_db_vol
+        driver: local
+    opencr-es_data_vol:
+        name: opencr-es_data_vol
+        driver: local
+
+
+networks:
+  cloudbuild:
+    name: cloudbuild

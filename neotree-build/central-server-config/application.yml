@@ -1,0 +1,237 @@
+server:
+    compression:
+        enabled: true
+        mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+        min-response-size: 1048576 # Compress when response > 1MB
+configserver:
+    name: Docker Consul Service
+    status: Connected to Consul Server for ${application.siteId}
+
+logging:
+    level:
+        ROOT: DEBUG
+        zw.gov.mohcc.mrs: DEBUG
+        io.github.jhipster: DEBUG
+        org.axonframework: INFO
+        net.sf.jasperreports: INFO
+        com.github.kagkarlsson.scheduler: ERROR
+
+jhipster:
+    security:
+        authentication:
+            jwt:
+                secret: be99f31b-176a-4ee4-8921-55ef00a6eb9e
+
+    mail: # specific JHipster mail property, for standard properties see MailProperties
+        from: mrs@localhost
+        base-url: http://my-server-url-to-change # Modify according to your server's URL
+
+# ===================================================================
+# Spring
+# ===================================================================
+
+spring:
+    rabbitmq:
+        host: amqp
+        port: 5672
+        username: guest
+        password: guest
+
+    datasource:
+        url: jdbc:mysql://mysql:3306/mrs?useUnicode=true&characterEncoding=utf8&useSSL=false
+        username: root
+        password: 
+        
+    jpa:
+        hibernate:
+                ddl-auto: none
+
+    cloud:
+        config:
+            override-system-properties: false
+
+
+    mail:
+        host: mail
+        port: 25
+        username:
+        password:  
+
+# ===================================================================
+# Axon
+# ===================================================================
+
+axon:
+    amqp:
+        exchange: amq.fanout
+
+    eventhandling:
+        processors:
+            view:
+                mode: subscribing #tracking
+                source: eventBus
+            report:
+                mode: subscribing #tracking  
+                source: eventBus
+
+# ===================================================================
+# Graphql
+# ===================================================================
+        
+graphql:
+    servlet:
+        mapping: /api/graphql
+        enabled: true
+        corsEnabled: true
+    subscriptions:
+        websocket:
+            path: /subscriptions   
+
+graphiql:
+    mapping: /graphiql
+    endpoint: ${graphql.servlet.mapping}
+    enabled: true
+    pageTitle: Mrs Query Interface
+          
+# ===================================================================
+# Application
+# ===================================================================
+                    
+application:
+    dhis2:
+        url: http://apps.mohcc.gov.zw/dhis
+        username: fakeadmin
+        password: district
+
+    health-service-integration:
+        url: "https://apps.mohcc.gov.zw:8080"
+        username: mrsfake
+        password: 2bd93683-f6f7-43e8-bee8-e4a7d2d48876
+
+        services:
+            client: exchange
+            exchange: exchange
+            facility: resource
+            terminology: resource
+            provider: resource
+
+        connection:
+            enabled: true
+            timeout: 5000
+            read: 5000                        
+        
+        amqp:
+            host: 1.1.1.1
+            port: 5672
+            username: mrsfakeagain
+            password: 84caa7cd-9cc8-43e7-a4fa-1678d2fb2650
+            
+    lims-integration:
+        connection:
+            enabled: false
+        lab-requests:
+            maxRetries: 720
+            retryInterval: 3600000
+            #00
+    deduplication-app-integration:
+        url: http://deduplication:3000/search
+        connection:
+            enabled: true
+            timeout: 5000
+            read: 18000
+            
+    scheduled-jobs:
+        enabled: false
+        art-appointments-update:
+            cron-expression: 0 0,5,10,15,20,25,30,35,40,45,50,55 * * * *
+    
+    hie:
+        username: eastlea-fhs
+        password: X6z&xKQzBXv2kr@p
+        enabled: false
+        client-registry:            
+            url: http://192.168.99.186:5001/CR/fhir/
+            inner-url: http://opencr:3000/fhir/
+        shared-health-record:            
+            url: http://192.168.99.186:5001/SHR/fhir/
+            inner-url: http://hapi-server:8080/fhir/
+    
+    phid:
+     serverUrl: https://phid2-zhie2-test.mohcc.gov.zw
+     username: admin
+     password: admin
+
+    
+     # Development-specific security configuration
+    notification:
+        email:
+            # In dev mode, send all security emails to the developer
+            security-admin: developer@example.com
+            security-team: developer@example.com
+            # Disable email in dev mode by default
+            enabled: false
+        sms:
+            enabled: false
+        app:
+            enabled: true
+            
+    # Security alerting configuration for development
+    security:
+        alert:
+            # Lower thresholds for development to make testing easier
+            threshold:
+                login-failure: 2
+                patient-record-access: 10
+                api-call-rate: 20
+                geo-location-distance: 100
+                session-hijacking: 2
+                behavior-anomaly: 50
+            cooldown-minutes: 5
+            working-hours-start: "07:00"
+            working-hours-end: "19:00"
+            enable-threat-intelligence: true
+        incident:
+            response:
+                # Disable potentially disruptive automated responses in dev mode
+                enable-account-lockout: false
+                enable-ip-blocking: false
+                enable-forensic-mode: true
+            # Shorter auto-resolve period for development
+            auto-resolve-days: 7
+
+
+fingerprint:
+    api:
+        base-url: http://localhost:3000
+        verify-url: http://localhost:8085
+        username: johndoe@me.com
+        password: password
+        timeout-seconds: 10000
+        default-quality-threshold: 80
+
+
+# ===================================================================
+# DHIS Scheduler
+# ===================================================================
+
+db-scheduler:
+    enabled: false
+    immediate-execution-enabled: false
+    initial-schedule: 0 40 23 * * ?
+    new-schedule: 0 59 23 * * ?
+
+#    heartbeat-interval: 5m
+#    polling-interval: 10s
+#    polling-limit:
+#    table-name: scheduled_tasks
+#    immediate-execution-enabled: false
+#    scheduler-name:
+#    threads: 10
+#
+#    # Ignored if a custom DbSchedulerStarter bean is defined
+#    delay-startup-until-context-ready: false
+#    polling-strategy: fetch
+#    polling-strategy-lower-limit-fraction-of-threads: 0.5
+#    polling-strategy-upper-limit-fraction-of-threads: 3.0
+#
+

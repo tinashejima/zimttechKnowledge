@@ -1,0 +1,55 @@
+version: "2.4"
+
+
+services:
+  openhim-mongo:
+    container_name: ihe-openhim-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    image: mongo:3.4
+    volumes:
+      - "ihe-openhim-mongo-data:/data/db"
+    networks:
+      - cloudbuild
+
+  openhim-core:
+    container_name: ihe-openhim-core
+    image: jembi/openhim-core:v7.1.0
+    restart: unless-stopped
+    environment:
+      - mongo_url=mongodb://openhim-mongo/openhim
+      - mongo_atnaUrl=mongodb://openhim-mongo/openhim
+    ports:
+      - "8088:8080"
+      - "5000:5000"
+      - "5001:5001"
+      - "5050:5050"
+      - "5051:5051"
+      - "5052:5052"
+      - "7788:7788"
+    depends_on:
+      - openhim-mongo
+    networks:
+      - cloudbuild
+      
+  openhim-console:
+    container_name: ihe-openhim-console
+    image: jembi/openhim-console:1.14.4
+    restart: unless-stopped
+    ports:
+      - "9000:80"
+    volumes:
+      - ./openhim-config/console-default.json:/usr/share/nginx/html/config/default.json
+    networks:
+      - cloudbuild
+
+volumes:
+  ihe-openhim-mongo-data:
+    name: ihe-openhim-mongo-data
+    driver: local
+
+
+networks:
+  cloudbuild:
+    name: cloudbuild

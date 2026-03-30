@@ -1,0 +1,43 @@
+version: "2.2"
+
+
+services:
+
+  hapi-fhir-db:
+      image: postgres:14.1-alpine
+      container_name: ihe_hapi_postgres
+      restart: unless-stopped
+      environment:
+          - POSTGRES_USER=admin
+          - POSTGRES_PASSWORD=admin
+          - POSTGRES_DB=hapi
+      ports:
+          - '5434:5432'
+      volumes:
+          - ihe-hapi_db_vol:/var/lib/postgresql/data
+      networks:
+          - cloudbuild
+
+  hapi-server:
+      image: "hapiproject/hapi:v6.1.0"
+      container_name: ihe_hapi_server
+      restart: unless-stopped
+      volumes:
+          - ./hapi-config:/custom/config/hapi
+      environment:
+          SPRING_CONFIG_LOCATION: 'file:///custom/config/hapi/hapi-application.yml'
+      networks:
+          - cloudbuild
+      ports:
+      - '8091:8080'  # TODO: To be removed.
+      depends_on:
+          - hapi-fhir-db
+
+networks:
+  cloudbuild:
+    name: cloudbuild
+
+volumes:
+    ihe-hapi_db_vol:
+        name: ihe-hapi_db_vol
+        driver: local

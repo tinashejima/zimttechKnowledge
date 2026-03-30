@@ -1,0 +1,122 @@
+---
+version: "2.4"
+services:
+  amqp:
+    image: rabbitmq:management-alpine
+    container_name: $SITE_ID-amqp
+    restart: always
+    volumes:
+      - ./data/amqp:/var/lib/rabbitmq/mnesia
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - lan
+  consul:
+    image: consul:0.9.3
+    container_name: $SITE_ID-consul
+    restart: always
+    command: consul agent -dev -ui -client 0.0.0.0
+    networks:
+      - lan
+  config:
+    image: jhipster/consul-config-loader:v0.2.2
+    container_name: $SITE_ID-config
+    restart: always
+    volumes:
+      - ./central-server-config:/config
+    environment:
+      - INIT_SLEEP_SECONDS=5
+      - CONSUL_URL=consul
+      - CONSUL_PORT=8500
+    networks:
+      - lan
+  mysql:
+    image: mysql:5.7.20
+    container_name: $SITE_ID-mysql
+    restart: always
+    volumes:
+      - ./data/mysql/:/var/lib/mysql
+      - ./data/backup:/opt
+    ports:
+      - 3310:3306
+    environment:
+      - MYSQL_USER=root
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+      - MYSQL_DATABASE=mrs
+    command: mysqld --lower_case_table_names=1 --skip-ssl
+      --character_set_server=utf8 --explicit_defaults_for_timestamp
+      --server-id=184001 --log-bin=mysql-bin --max-binlog-size=4096
+      --binlog-format=ROW --sync-binlog=1 --binlog_row_image=full
+      --expire_logs_days=30
+    networks:
+      - lan
+  backup:
+    image: deitch/mysql-backup
+    container_name: $SITE_ID-backup
+    restart: always
+    user: root
+    volumes:
+      - ./data/backup:/backup
+      - ./config/backup/pre:/scripts.d
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      - SITE_ID=$SITE_ID
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_DUMP_FREQ=1440
+      - DB_DUMP_BEGIN=2000
+      - DB_SERVER=mysql
+      - DB_NAMES=mrs
+    networks:
+      - lan
+  mail:
+    image: djfarrelly/maildev
+    container_name: $SITE_ID-mail
+    restart: always
+    command: bin/maildev --web 80 --smtp 25 --outgoing-host
+      smtp.gmail.com  --outgoing-secure   --outgoing-user
+      'mrs.mohcc.gov.zw@gmail.com'  --outgoing-pass 'mrs@mohcc.gov.zw'
+      --auto-relay
+    networks:
+      - lan
+  server:
+    image: mohcc/mrs:$VERSION
+    container_name: $SITE_ID-server
+    restart: always
+    ports:
+      - $SERVER_PORT:8080
+    environment:
+      - SPRING_PROFILES_ACTIVE=$PROFILE
+      - SPRING_CLOUD_CONSUL_HOST=consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+      - APPLICATION_SITEID=$SITE_ID
+      - JHIPSTER_SLEEP=10
+    networks:
+      - lan
+    depends_on:
+      - mysql
+      - amqp
+    logging:
+      options:
+        max-size: 10m
+        max-file: "5"
+  deduplication:
+    image: tinashebutsa/deduplication:1.5
+    container_name: $SITE_ID-deduplication
+    environment:
+      - MYSQL_USER=root
+      - MYSQL_ROOT_HOST=mysql
+      - MYSQL_PASSWORD=
+      - amqpserver=amqp
+      - PYTHONUNBUFFERED=1
+    networks:
+      - lan
+    restart: always
+    depends_on:
+      - mysql
+      - amqp
+networks:
+  lan:
+    name: $SITE_ID.net
+    driver: bridge
